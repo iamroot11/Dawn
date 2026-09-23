@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from app.database import SessionLocal
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.database import get_db
 from app.models import Subject, Topic, Subtopic, Track
 
 # For the pydantic models
@@ -15,14 +16,18 @@ class TopicCreate(BaseModel):
 app = FastAPI()
 
 @app.post("/topics") # When a request is sent to topics
-def add_topic(payload: TopicCreate):
-    db = SessionLocal() # Create a session for the database
+def add_topic(payload: TopicCreate, db: Session = Depends(get_db)):
     
     # Find the existing subject, or create subject if it doesn't exist yet
     subject = db.query(Subject).filter_by(subject_name = payload.subject_name).first()
     if subject is None: # Doesn't exist
         subject = Subject(subject_name = payload.subject_name)
         db.add(subject)
+    
+    try:
+        track = Track(payload.track)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid track: {payload.track}")
     
     # Add the topic
     topic = Topic(topic_name = payload.topic_name, subject = subject, track = Track(payload.track))
@@ -33,5 +38,4 @@ def add_topic(payload: TopicCreate):
         db.add(subtopic)
     
     db.commit() # Commit all changes added to the DB
-    db.close()
     return {"status": "added", "topic": payload.topic_name}
