@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Subject, Topic, Subtopic, Track
@@ -14,6 +15,13 @@ class TopicCreate(BaseModel):
     subtopic_name: str | None = None # Meaning this is optional
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # insecure right now, tighten for future use
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/topics") # When a request is sent to topics
 def add_topic(payload: TopicCreate, db: Session = Depends(get_db)):

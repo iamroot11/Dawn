@@ -44,6 +44,5 @@ Running record of real design choices and the reasoning behind them, in the orde
 
 **Subject normalized as its own table:** Same reasoning as topics/subtopics fix.
 
-
-
-
+**Frontend switched to Flutter, plain HTML approach abandoned.** I'm already experienced with Flutter (has built apps with it before), which removes the main cost that favored plain HTML/JS (learning overhead). Flutter offers a better UI ceiling and a path to an installable app rather than a bookmarked local IP in a browser tab. Backend is unaffected — Flutter talks to the same FastAPI endpoints over HTTP, same local-network architecture. Added CORS middleware to FastAPI since frontend and backend now run on different origins. Repo restructured into backend/ and frontend/ top-level folders (single monorepo, not
+split repos — the two evolve in lockstep and splitting them would add pure coordination overhead for a solo build with no independent release-cycle benefit).

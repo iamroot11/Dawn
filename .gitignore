@@ -114,3 +114,10 @@ dist/
 # ============================
 *.local
 .cache/
+
+# Flutter
+build/
+.dart_tool/
+.flutter-plugin-dependencies
+*.g.dart
+ios/Pods/
