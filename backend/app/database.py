@@ -3,10 +3,10 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "sqlite:///dawn.db"
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+# connect_args needed for SQLite threading
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# This is so that we don't need to open or close the db in every FastAPI endpoint
 def get_db():
     db = SessionLocal()
     try:

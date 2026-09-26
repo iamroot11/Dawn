@@ -113,6 +113,8 @@ class Subject(Base):
     subject_id: Mapped[int] = mapped_column(primary_key=True)
     subject_name: Mapped[str] = mapped_column(String(60))  # "Physics", "Chemistry", "Maths"
 
+    is_active: Mapped[bool] = mapped_column(default=True)
+
     topics: Mapped[list["Topic"]] = relationship(back_populates="subject")
 
 
@@ -124,16 +126,20 @@ class Topic(Base):
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.subject_id"))
     track: Mapped[Track] = mapped_column(default=Track.JEE)
 
+    is_active: Mapped[bool] = mapped_column(default=True)
+
     subject: Mapped["Subject"] = relationship(back_populates="topics")
     subtopics: Mapped[list["Subtopic"]] = relationship(back_populates="topic")
 
- 
+
 class Subtopic(Base):
     __tablename__ = "subtopics"
 
     subtopic_id: Mapped[int] = mapped_column(primary_key=True)
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"))
     subtopic_name: Mapped[str] = mapped_column(String(120))
+    
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     topic: Mapped["Topic"] = relationship(back_populates="subtopics")
 
@@ -187,11 +193,16 @@ class Session(Base):
 
     session_id: Mapped[int] = mapped_column(primary_key=True)
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"))
-    subtopic_id: Mapped[int] = mapped_column(ForeignKey("subtopics.subtopic_id"))
+    subtopic_id: Mapped[int | None] = mapped_column(ForeignKey("subtopics.subtopic_id"), nullable=True)
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.source_id"))
     track: Mapped[Track] = mapped_column(default=Track.JEE)
     starting_question_number: Mapped[int] = mapped_column(default=1)
     batch_size: Mapped[int] = mapped_column(default=10)
+    current_question_number: Mapped[int] = mapped_column(default=1)
+    current_question_started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_paused: Mapped[bool] = mapped_column(default=False)
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    total_paused_seconds: Mapped[int] = mapped_column(default=0)
     start_time: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     end_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -217,7 +228,7 @@ class Question(Base):
         ForeignKey("source_exercises.exercise_id"), nullable=True
     )
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"))
-    subtopic_id: Mapped[int] = mapped_column(ForeignKey("subtopics.subtopic_id"))
+    subtopic_id: Mapped[int | None] = mapped_column(ForeignKey("subtopics.subtopic_id"), nullable=True)
     track: Mapped[Track] = mapped_column(default=Track.JEE)
 
     question_number: Mapped[int] = mapped_column(Integer)

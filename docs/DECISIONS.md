@@ -40,9 +40,18 @@ Running record of real design choices and the reasoning behind them, in the orde
 
 **Docs structure.** Split into `PLAN.md` (vision/modules, evolves with scope), `SCHEMA.md` (working reference, kept in sync with actual code), and `DECISIONS.md` (this file — dated reasoning trail, append-only by nature). README stays at repo root as the entry point.
 
+**Subject normalized as its own table, above Topics.** Same reasoning as the Topic/Subtopic fix — "Physics"/"Chemistry"/"Maths" as free text on Topics carried the same typo/mismatch risk already fixed one level down. Corrected to a full three-level hierarchy (Subject → Topic → Subtopic), with Topics referencing Subjects by foreign key instead of a string.
 
+**Sessions need live state to auto-compute question numbers and timing.** Building the actual question-logging endpoints exposed a gap: server-side auto-increment of `question_number` and auto-computed `time_taken_seconds` require knowing which question is currently active and when it started. Added `current_question_number` and `current_question_started_at` to Sessions — advanced on every question logged, read on the next one to compute elapsed time. Without this, the client would need to track and send timing itself, defeating the point of server-side computation.
 
-**Subject normalized as its own table:** Same reasoning as topics/subtopics fix.
+**Naming collision: SQLAlchemy's `Session` model vs. `sqlalchemy.orm.Session`.** The DAWN table representing a study session is named `Session`, which collides with the standard import name for a database session object. Resolved by aliasing on import (`from app.models import Session as DBSession`) rather than renaming the table — the table name `Session` matches the domain language used everywhere else in the docs.
 
-**Frontend switched to Flutter, plain HTML approach abandoned.** I'm already experienced with Flutter (has built apps with it before), which removes the main cost that favored plain HTML/JS (learning overhead). Flutter offers a better UI ceiling and a path to an installable app rather than a bookmarked local IP in a browser tab. Backend is unaffected — Flutter talks to the same FastAPI endpoints over HTTP, same local-network architecture. Added CORS middleware to FastAPI since frontend and backend now run on different origins. Repo restructured into backend/ and frontend/ top-level folders (single monorepo, not
-split repos — the two evolve in lockstep and splitting them would add pure coordination overhead for a solo build with no independent release-cycle benefit).
+**Session pause/resume, without touching timer math at read time.** Real study sessions get interrupted (calls, breaks) — logging a question after a long unlogged gap would corrupt `time_taken_seconds` unless pause time is accounted for. Added `is_paused`, `paused_at`, `total_paused_seconds` to Sessions. Resolved by shifting `current_question_started_at` forward by the pause duration on resume, rather than subtracting pause time wherever timing is calculated — the existing `time_taken = now − current_question_started_at` formula in `/questions` needed zero changes as a result. `/questions` also rejects logging while `is_paused` is true, forcing an explicit resume first.
+
+**Subtopic made optional on Sessions and Questions.** Not every topic subdivides cleanly into subtopics — forcing one on every session/question would push toward fake placeholder subtopics just to satisfy the schema, corrupting the same data the Topic/Subtopic normalization was meant to protect. `subtopic_id` is now nullable wherever it's used as a foreign key (Sessions, Questions). The Subtopics table itself, and its link to Topics, stays mandatory — that governs what a subtopic *is*, not where it's *used*.
+
+25/9/2026
+**Deleted all Pydantic and FastAPI Models**: All of the Pydantic schemas, FastAPI Models are getting confusing, so removing them temporarily to focus purely on the schema.
+
+25/9/2026
+**Decision to use simple HTTP Requests:** Considering the complexity of Pydantic and FastAPI, and the needs of the project, will be using HTTP Requests in JSON for simpler methods. 
