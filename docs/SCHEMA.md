@@ -28,11 +28,11 @@ This is the working reference for the database structure — check here while co
 
 ### Subtopics
 
-| Column        | Type        | Notes                                                                                           |
-| ------------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| subtopic_id   | PK          |                                                                                                 |
-| topic_id      | FK → Topics | every subtopic belongs to exactly one topic                                                     |
-| subtopic_name | text        | e.g. "Moment of Inertia"                                                                        |
+| Column        | Type        | Notes                                                               |
+| ------------- | ----------- | ------------------------------------------------------------------- |
+| subtopic_id   | PK          |                                                                     |
+| topic_id      | FK → Topics | every subtopic belongs to exactly one topic                         |
+| subtopic_name | text        | e.g. "Moment of Inertia"                                            |
 | is_active     | bool        | Allows for the soft-deleting of topics preserving analytics history |
 
 ### Sources
@@ -57,15 +57,15 @@ This is the working reference for the database structure — check here while co
 
 *Exercise-wise calibration — a Source can have many exercises, each independently calibrated.*
 
-| Column                | Type         | Notes                   |
-| --------------------- | ------------ | ----------------------- |
-| exercise_id           | PK           |                         |
-| source_id             | FK → Sources |                         |
-| exercise_number       | text         | "Exercise 3", etc.      |
-| problems_in_exercise  | int          |                         |
-| problems_solved       | int          |                         |
-| calibrated_difficulty | float        | empirical, per exercise |
-| average_accuracy      | float        |                         |
+| Column                                      | Type         | Notes                   |
+| ------------------------------------------- | ------------ | ----------------------- |
+| exercise_id                                 | PK           |                         |
+| source_id                                   | FK → Sources |                         |
+| exercise_number                             | text         | "Exercise 3", etc.      |
+| problems_in_exercise                        | int          |                         |
+| problems_solved | int          |                         |
+| calibrated_difficulty                       | float        | empirical, per exercise |
+| average_accuracy                            | float        |                         |
 
 ### Questions
 

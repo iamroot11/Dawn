@@ -164,6 +164,8 @@ class Source(Base):
     calibration_confidence: Mapped[CalibrationConfidence] = mapped_column(
         default=CalibrationConfidence.UNCALIBRATED
     )
+    
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     topic: Mapped["Topic"] = relationship()
     exercises: Mapped[list["SourceExercise"]] = relationship(back_populates="source")
@@ -179,6 +181,8 @@ class SourceExercise(Base):
     problems_solved: Mapped[int] = mapped_column(default=0)
     calibrated_difficulty: Mapped[float | None] = mapped_column(Float, nullable=True)
     average_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    is_active: Mapped[bool] = mapped_column(default=True)
 
     source: Mapped["Source"] = relationship(back_populates="exercises")
 
