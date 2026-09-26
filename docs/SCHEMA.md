@@ -39,33 +39,35 @@ This is the working reference for the database structure — check here while co
 
 *One row per Book × Topic — same book gets multiple rows across topics, since calibration is topic-specific.*
 
-| Column                 | Type                                    | Notes                           |
-| ---------------------- | --------------------------------------- | ------------------------------- |
-| source_id              | PK                                      |                                 |
-| book_name              | text                                    | e.g. "HC Verma Part 1"          |
-| topic_id               | FK → Topics                             |                                 |
-| track                  | JEE / Board                             |                                 |
-| rated_difficulty       | Easy/Medium/Hard/Unrated                | book's own stated label, if any |
-| difficulty_scheme      | labeled / exercise-ordinal / unknown    |                                 |
-| total_problems         | int                                     |                                 |
-| problems_solved        | int                                     |                                 |
-| calibrated_difficulty  | float                                   | learned, not stated             |
-| average_accuracy       | float                                   | recomputable cache              |
-| calibration_confidence | uncalibrated / provisional / calibrated |                                 |
+| Column                 | Type                                    | Notes                            |
+| ---------------------- | --------------------------------------- | -------------------------------- |
+| source_id              | PK                                      |                                  |
+| book_name              | text                                    | e.g. "HC Verma Part 1"           |
+| topic_id               | FK → Topics                             |                                  |
+| track                  | JEE / Board                             |                                  |
+| rated_difficulty       | Easy/Medium/Hard/Unrated                | book's own stated label, if any  |
+| difficulty_scheme      | labeled / exercise-ordinal / unknown    |                                  |
+| total_problems         | int                                     |                                  |
+| problems_solved        | int                                     |                                  |
+| calibrated_difficulty  | float                                   | learned, not stated              |
+| average_accuracy       | float                                   | recomputable cache               |
+| calibration_confidence | uncalibrated / provisional / calibrated |                                  |
+| is_active              | bool                                    | Soft |
 
 ### Source_Exercises (child of Sources)
 
 *Exercise-wise calibration — a Source can have many exercises, each independently calibrated.*
 
-| Column                                      | Type         | Notes                   |
-| ------------------------------------------- | ------------ | ----------------------- |
-| exercise_id                                 | PK           |                         |
-| source_id                                   | FK → Sources |                         |
-| exercise_number                             | text         | "Exercise 3", etc.      |
-| problems_in_exercise                        | int          |                         |
-| problems_solved | int          |                         |
-| calibrated_difficulty                       | float        | empirical, per exercise |
-| average_accuracy                            | float        |                         |
+| Column                | Type         | Notes                   |
+| --------------------- | ------------ | ----------------------- |
+| exercise_id           | PK           |                         |
+| source_id             | FK → Sources |                         |
+| exercise_number       | text         | "Exercise 3", etc.      |
+| problems_in_exercise  | int          |                         |
+| problems_solved       | int          |                         |
+| calibrated_difficulty | float        | empirical, per exercise |
+| average_accuracy      | float        |                         |
+| is_active             | bool         |                         |
 
 ### Questions
 
