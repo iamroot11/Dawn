@@ -86,3 +86,11 @@ Running record of real design choices and the reasoning behind them, in the orde
 
 
 **Scope line for `sessions.py`:** logging only — starting/pausing/resuming sessions, opening/completing question rows, batch-boundary detection, and writing correctness/error_type at grading. No accuracy, calibration, decay, or ErrorQueue-scheduling math lives here; that's for separate modules once the logging layer is solid.
+
+
+
+29/7/2026:
+
+**Using Flask instead of native `http.server`:** Makes building the entire http server far easier than manually mapping routing, etc.
+
+
