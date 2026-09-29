@@ -58,61 +58,63 @@ This is the working reference for the database structure — check here while co
 
 *Exercise-wise calibration — a Source can have many exercises, each independently calibrated.*
 
-| Column                | Type         | Notes                        |
-| --------------------- | ------------ | ---------------------------- |
-| exercise_id           | PK           |  |
-| source_id             | FK → Sources |                              |
-| exercise_number       | text         | "Exercise 3", etc.           |
-| problems_in_exercise  | int          |                              |
-| problems_solved       | int          |                              |
-| calibrated_difficulty | float        | empirical, per exercise      |
-| average_accuracy      | float        |                              |
-| is_active             | bool         |                              |
+| Column                | Type         | Notes                   |
+| --------------------- | ------------ | ----------------------- |
+| exercise_id           | PK           |                         |
+| source_id             | FK → Sources |                         |
+| exercise_number       | text         | "Exercise 3", etc.      |
+| problems_in_exercise  | int          |                         |
+| problems_solved       | int          |                         |
+| calibrated_difficulty | float        | empirical, per exercise |
+| average_accuracy      | float        |                         |
+| is_active             | bool         |                         |
 
 ### Questions
 
 *Every attempt — raw and append-only. Redoing a queued wrong question creates a **new row**, never overwrites the old one.*
 
-| Column                | Type                                                             | Notes                                                               |
-| --------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
-| question_id           | PK                                                               |                                                                     |
-| session_id            | FK → Sessions                                                    |                                                                     |
-| source_id             | FK → Sources                                                     |                                                                     |
-| exercise_id           | FK → Source_Exercises                                            | nullable                                                            |
-| topic_id              | FK → Topics                                                      |                                                                     |
-| subtopic_id           | FK → Subtopics, nullable                                         | not every topic subdivides cleanly — optional                       |
-| track                 | JEE / Board                                                      |                                                                     |
-| question_number       | int                                                              | auto-increment within session                                       |
-| subjective_difficulty | Easy/Med/Hard                                                    | logged live, mid-session                                            |
-| correctness           | Correct/Incorrect/Partial/Pending                                | logged at batch grading, not live                                   |
-| error_type            | Nil/Conceptual/Silly/Calculation/Strategic/Time-pressure/Misread | only if incorrect                                                   |
-| time_taken_seconds    | int                                                              | auto-computed from timestamps                                       |
-| timestamp             | datetime                                                         | full moment logged — enables day/time/fatigue analysis later        |
-| position_in_session   | int                                                              | ordinal position in session/batch — within-session fatigue modeling |
-| confidence_rating     | Low/Med/High, optional                                           | metacognitive signal — do you know what you know                    |
-| original_question_id  | FK → Questions, nullable                                         | points back to the original attempt if this row is a redo           |
-| photo_path            | text                                                             | nullable, doubt-solving reference                                   |
+| Column                | Type                                                                       | Notes                                                                                                                               |
+| --------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| question_id           | PK                                                                         |                                                                                                                                     |
+| session_id            | FK → Sessions                                                              |                                                                                                                                     |
+| source_id             | FK → Sources                                                               |                                                                                                                                     |
+| exercise_id           | FK → Source_Exercises, nullable                                            | copied down from Session.exercise_id when the row is created; not every source has exercises (e.g. DPPs)                            |
+| topic_id              | FK → Topics                                                                |                                                                                                                                     |
+| subtopic_id           | FK → Subtopics, nullable                                                   | not every topic subdivides cleanly — optional                                                                                       |
+| track                 | JEE / Board                                                                |                                                                                                                                     |
+| question_number       | int                                                                        | auto-increment within session                                                                                                       |
+| subjective_difficulty | Easy/Med/Hard, nullable                                                    | logged live, mid-session — blank until the question is completed                                                                    |
+| correctness           | Correct/Incorrect/Partial/Pending                                          | logged at batch grading, not live                                                                                                   |
+| error_type            | Nil/Conceptual/Silly/Calculation/Strategic/Time-pressure/Misread, nullable | no default — blank (not "Nil") until graded, same as correctness                                                                    |
+| started_at            | datetime                                                                   | set the moment this row is created (question opened) — the per-question clock; pause/resume adjusts this, not a session-level field |
+| time_taken_seconds    | int, nullable                                                              | auto-computed as `timestamp − started_at` when the question is completed                                                            |
+| timestamp             | datetime, nullable                                                         | set when the question is completed; NULL means this is the session's currently-open, unfinished question                            |
+| position_in_session   | int                                                                        | ordinal position in session/batch (1, 2, 3...) — within-session fatigue modeling                                                    |
+| confidence_rating     | Low/Med/High, optional                         | metacognitive signal — do you know what you know                                                                                    |
+| original_question_id  | FK → Questions, nullable                                                   | points back to the original attempt if this row is a redo                                                                           |
+| photo_path            | text                                                                       | nullable, doubt-solving reference                                                                                                   |
 
 ### Sessions
 
 *Fixed metadata set once at session start.*
 
-| Column                      | Type                     | Notes                                                                         |
-| --------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| session_id                  | PK                       |                                                                               |
-| topic_id                    | FK → Topics              |                                                                               |
-| subtopic_id                 | FK → Subtopics, nullable | not every topic subdivides cleanly — optional                                 |
-| source_id                   | FK → Sources             |                                                                               |
-| track                       | JEE / Board              |                                                                               |
-| starting_question_number    | int                      |                                                                               |
-| batch_size                  | int                      | default 10                                                                    |
-| current_question_number     | int                      | tracks the active question — advances on each question logged                 |
-| current_question_started_at | datetime                 | timestamp used to auto-compute time_taken_seconds on the next question logged |
-| is_paused                   | boolean                  | default False — blocks question logging while true                            |
-| paused_at                   | datetime                 | nullable — when the current pause began                                       |
-| total_paused_seconds        | int                      | default 0 — running total, kept for future analytics (Module 8)               |
-| start_time                  | timestamp                |                                                                               |
-| end_time                    | timestamp                | nullable until session ends                                                   |
+*No `current_question_number` / `current_question_started_at` here — the "currently open" question is just the row in Questions for this session with `timestamp IS NULL`; its own `started_at` is the per-question clock.*
+
+| Column                   | Type                            | Notes                                                                                                                                                              |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| session_id               | PK                              |                                                                                                                                                                    |
+| topic_id                 | FK → Topics                     |                                                                                                                                                                    |
+| subtopic_id              | FK → Subtopics, nullable        | not every topic subdivides cleanly — optional                                                                                                                      |
+| source_id                | FK → Sources                    |                                                                                                                                                                    |
+| exercise_id              | FK → Source_Exercises, nullable | locked in once at session start, same as topic/subtopic/source; not every source has exercises (e.g. DPPs); copied onto every Question row created in this session |
+| track                    | JEE / Board                     |                                                                                                                                                                    |
+| starting_question_number | int                             |                                                                                                                                                                    |
+| batch_size               | int                             | default 10                                                                                                                                                         |
+| is_paused                | boolean                         | default False — blocks question logging while true; grading time still counts toward session duration, so grading does NOT pause the session                       |
+| paused_at                | datetime                        | nullable — when the current pause began                                                                                                                            |
+| total_paused_seconds     | int                             | default 0 — running total, kept for future analytics (Module 8)                                                                                                    |
+| start_time               | timestamp                       |                                                                                                                                                                    |
+| end_time                 | timestamp                       | nullable until session ends                                                                                                                                        |
 
 ### ErrorQueue
 

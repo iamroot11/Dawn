@@ -50,8 +50,39 @@ Running record of real design choices and the reasoning behind them, in the orde
 
 **Subtopic made optional on Sessions and Questions.** Not every topic subdivides cleanly into subtopics — forcing one on every session/question would push toward fake placeholder subtopics just to satisfy the schema, corrupting the same data the Topic/Subtopic normalization was meant to protect. `subtopic_id` is now nullable wherever it's used as a foreign key (Sessions, Questions). The Subtopics table itself, and its link to Topics, stays mandatory — that governs what a subtopic *is*, not where it's *used*.
 
-25/9/2026
+
+
+25/9/2026:
 **Deleted all Pydantic and FastAPI Models**: All of the Pydantic schemas, FastAPI Models are getting confusing, so removing them temporarily to focus purely on the schema.
 
-25/9/2026
 **Decision to use simple HTTP Requests:** Considering the complexity of Pydantic and FastAPI, and the needs of the project, will be using HTTP Requests in JSON for simpler methods. 
+
+
+
+27/9/2026
+
+**Per-question timing, not per-session.** While building `sessions.py`, having a single `current_question_started_at`/`current_question_number` on Sessions meant overwriting the same field on every question logged — fine for timing, but it meant there was no natural place to hang pause/resume adjustments per question, and no way to tell "which question is open" without extra session state. Fixed by moving the clock onto Questions themselves: every question row is created up front with `started_at` set and everything else blank, then filled in (`timestamp`, `time_taken_seconds`, `subjective_difficulty`) when the question is completed. The "currently open" question for a session is just the row with `timestamp IS NULL` — no separate pointer field needed. `Session.current_question_number` and `current_question_started_at` are removed as a result.
+
+
+
+**Pause/resume now adjusts the open question's clock, not a session-level field.** Direct consequence of the above — resuming shifts the open question's `started_at` forward by the pause duration, same logic as before, just relocated. Grading a batch does **not** pause the session: session duration is meant to represent total sit-down study time, and going through the answer key is part of that, not a break.
+
+
+
+**`error_type` and `timestamp` on Questions are nullable with no default.** Previously `error_type` defaulted to `Nil` and `timestamp` was set at row creation — both implied a question was already resolved the moment it started. Since correctness and error type are only known at batch grading, both now sit blank between question-start and grading, matching `correctness`'s existing `Pending` default in spirit.
+
+
+
+**Exercise is session-scoped, not per-question, and optional.** Some sources (e.g. Daily Practice Problem sheets) don't have exercises at all, so `exercise_id` must be nullable. Where it does apply, it's locked in once at session start alongside topic/subtopic/source — you don't switch exercises mid-session — and copied onto every Question row created in that session, the same denormalization pattern topic_id/subtopic_id/source_id already follow on Questions.
+
+
+
+**Batch boundary is source-of-truth-driven, not just a count.** A batch ends when _either_ `batch_size` questions have been logged, _or_ the exercise (or source, if no exercise is set) runs out of problems — checked against `problems_solved` vs. `problems_in_exercise`/`total_problems`. This means `sessions.py` (logging layer) is responsible for incrementing `problems_solved` on Source/SourceExercise as questions complete, even though this looks like an aggregate — it's a raw running count needed to detect the boundary, not a derived statistic, so it stays in the logging layer rather than a separate analytics module.
+
+
+
+**Ending a session finishes the open question but doesn't force grading.** `end_session` completes whatever question is currently open (fills in timing/difficulty, same as a normal completion) and sets `end_time`, but any batch still sitting at `correctness = Pending` is left as-is — the function reports back what's ungraded so the caller can prompt for a grading pass, but grading itself stays a separate, explicit step (`grade_batch`) that can run before or after `end_time` is set.
+
+
+
+**Scope line for `sessions.py`:** logging only — starting/pausing/resuming sessions, opening/completing question rows, batch-boundary detection, and writing correctness/error_type at grading. No accuracy, calibration, decay, or ErrorQueue-scheduling math lives here; that's for separate modules once the logging layer is solid.

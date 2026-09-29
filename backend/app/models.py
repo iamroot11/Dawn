@@ -199,11 +199,16 @@ class Session(Base):
     topic_id: Mapped[int] = mapped_column(ForeignKey("topics.topic_id"))
     subtopic_id: Mapped[int | None] = mapped_column(ForeignKey("subtopics.subtopic_id"), nullable=True)
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.source_id"))
+    # optional — not every source has exercises (e.g. DPPs). Locked in once at
+    # session start, same as topic/subtopic/source; copied onto every Question
+    # row created in this session.
+    exercise_id: Mapped[int | None] = mapped_column(ForeignKey("source_exercises.exercise_id"), nullable=True)
     track: Mapped[Track] = mapped_column(default=Track.JEE)
     starting_question_number: Mapped[int] = mapped_column(default=1)
     batch_size: Mapped[int] = mapped_column(default=10)
-    current_question_number: Mapped[int] = mapped_column(default=1)
-    current_question_started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # NOTE: no current_question_number / current_question_started_at here.
+    # The "currently open" question is just the Question row for this session
+    # with timestamp IS NULL — its own started_at is the per-question clock.
     is_paused: Mapped[bool] = mapped_column(default=False)
     paused_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     total_paused_seconds: Mapped[int] = mapped_column(default=0)
@@ -213,6 +218,7 @@ class Session(Base):
     topic: Mapped["Topic"] = relationship()
     subtopic: Mapped["Subtopic"] = relationship()
     source: Mapped["Source"] = relationship()
+    exercise: Mapped["SourceExercise | None"] = relationship()
     questions: Mapped[list["Question"]] = relationship(back_populates="session")
 
 
@@ -238,10 +244,17 @@ class Question(Base):
     question_number: Mapped[int] = mapped_column(Integer)
     subjective_difficulty: Mapped[SubjectiveDifficulty | None] = mapped_column(nullable=True)
     correctness: Mapped[Correctness] = mapped_column(default=Correctness.PENDING)
-    error_type: Mapped[ErrorType] = mapped_column(default=ErrorType.NIL)
+    # No default — a question isn't "Nil" (no error) until it's actually been
+    # graded. Stays blank between question-completion and the batch grading pass.
+    error_type: Mapped[ErrorType | None] = mapped_column(nullable=True)
 
+    # Set the moment this row is created (question started) — the per-question
+    # equivalent of the old Session.current_question_started_at.
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     time_taken_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Set when the question is completed (time/difficulty filled in) — NULL
+    # means this is the currently-open, unfinished question in its session.
+    timestamp: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     position_in_session: Mapped[int | None] = mapped_column(Integer, nullable=True)
     confidence_rating: Mapped[ConfidenceRating | None] = mapped_column(nullable=True)
 
