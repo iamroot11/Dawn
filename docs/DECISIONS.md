@@ -94,3 +94,5 @@ Running record of real design choices and the reasoning behind them, in the orde
 **Using Flask instead of native `http.server`:** Makes building the entire http server far easier than manually mapping routing, etc.
 
 
+3/10/2026:
+**Scrapping Flutter for React + Typescript + Shadcn/UI:** Although comfortable with flutter, quite limited to its widget system, react will not be that difficult to learn and wasy to get help with using AI.
